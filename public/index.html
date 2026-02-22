@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>ANIMATOR by IRS - Metadata Gen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-10">
+    <div class="max-w-2xl mx-auto border border-gray-700 p-6 rounded-lg">
+        <h1 class="text-2xl font-bold mb-4">Metadata Generator (Multi-Format)</h1>
+        
+        <input type="file" id="fileInput" class="mb-4 block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+        
+        <canvas id="previewCanvas" class="hidden border mb-4 w-full"></canvas>
+        <button id="btnGenerate" class="bg-green-600 px-6 py-2 rounded font-bold w-full disabled:bg-gray-600">Generate Metadata</button>
+        
+        <div id="result" class="mt-6 p-4 bg-black rounded border border-gray-600 whitespace-pre-wrap text-sm text-green-400">Hasil akan muncul di sini...</div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const btn = document.getElementById('btnGenerate');
+        const canvas = document.getElementById('previewCanvas');
+        const ctx = canvas.getContext('2d');
+
+        btn.onclick = async () => {
+            const file = fileInput.files[0];
+            if (!file) return alert("Pilih file dulu!");
+
+            btn.disabled = true;
+            document.getElementById('result').innerText = "Sedang menganalisis...";
+
+            let base64Data = "";
+            let mimeType = file.type;
+
+            // Logika Khusus Video: Ambil Frame Pertama
+            if (file.type.includes('video')) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                await new Promise(r => video.onloadeddata = r);
+                video.currentTime = 1; // Ambil detik ke-1
+                await new Promise(r => video.onseeked = r);
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+                base64Data = canvas.toDataURL('image/jpeg').split(',')[1];
+                mimeType = "image/jpeg";
+            } 
+            // Logika Gambar & Vektor (Vektor dirender ke Canvas)
+            else {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                await new Promise(r => reader.onload = r);
+                base64Data = reader.result.split(',')[1];
+            }
+
+            // Kirim ke Backend Vercel
+            const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileData: base64Data, mimeType })
+            });
+            const data = await res.json();
+            document.getElementById('result').innerText = data.result || data.error;
+            btn.disabled = false;
+        };
+    </script>
+</body>
+</html>
