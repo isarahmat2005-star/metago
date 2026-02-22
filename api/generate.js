@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   
   // MENGGUNAKAN MODEL TERBARU (Gemini 2.0 Flash)
   // Ini jauh lebih cepat dan akurat untuk deteksi objek/metadata
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const { fileData, mimeType } = req.body;
 
